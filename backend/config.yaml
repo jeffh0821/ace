@@ -1,0 +1,21 @@
+llm:
+  provider: openrouter
+  model: gpt-4o-mini
+  embedding_model: all-MiniLM-L6-v2
+  api_key: ${OPENROUTER_API_KEY}
+
+confidence:
+  threshold: 0.80
+  retrieval_weight: 0.5
+  llm_weight: 0.5
+
+retrieval:
+  top_k: 5
+
+database:
+  chroma_persist_dir: ./chroma_data
+
+app:
+  host: 0.0.0.0
+  port: 8000
+  secret_key: ${APP_SECRET_KEY}

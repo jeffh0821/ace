@@ -1,0 +1,35 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.19
+
+# Database
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+
+# Vector DB
+chromadb==0.5.23
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+# PDF processing
+pymupdf==1.25.1
+pytesseract==0.3.13
+Pillow==11.1.0
+
+# Embeddings
+sentence-transformers==3.3.1
+
+# LLM
+httpx==0.28.1
+
+# Config
+pyyaml==6.0.2
+pydantic-settings==2.7.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
