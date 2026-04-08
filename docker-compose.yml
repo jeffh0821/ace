@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./data/chroma:/app/chroma_data
+      - ./data/db:/app/db
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ACE_SECRET_KEY=${APP_SECRET_KEY:-change-me-in-production}
+      - ACE_DATABASE_URL=sqlite+aiosqlite:///./db/ace.db
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
