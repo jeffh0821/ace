@@ -1,5 +1,6 @@
 """Async SQLAlchemy database engine and session management."""
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -28,3 +29,23 @@ async def init_db():
     """Create all tables. Called on startup."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+async def seed_admin():
+    """Create default admin if no users exist."""
+    from app.models.user import User, UserRole
+    from app.core.security import hash_password
+
+    async with async_session() as session:
+        result = await session.execute(select(User).limit(1))
+        if result.scalar_one_or_none() is None:
+            admin = User(
+                username="admin",
+                email="admin@ace.local",
+                display_name="System Administrator",
+                password_hash=hash_password("changeme"),
+                role=UserRole.admin,
+            )
+            session.add(admin)
+            await session.commit()
+            print(">>> Seeded default admin user (admin / changeme)")

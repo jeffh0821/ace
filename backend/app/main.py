@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.db.database import init_db
+from app.db.database import init_db, seed_admin
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 
@@ -15,6 +15,7 @@ from app.api.users import router as users_router
 async def lifespan(app: FastAPI):
     """Startup: init DB tables. Shutdown: cleanup."""
     await init_db()
+    await seed_admin()
     yield
 
 
