@@ -14,6 +14,7 @@ from app.api.questions import router as questions_router
 from app.api.escalations import router as escalations_router
 from app.api.feedback import router as feedback_router
 from app.api.analytics import router as analytics_router
+from app.api.config import router as config_router
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ app.include_router(questions_router, prefix="/api")
 app.include_router(escalations_router, prefix="/api")
 app.include_router(feedback_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
+app.include_router(config_router, prefix="/api")
 
 
 @app.get("/health")
