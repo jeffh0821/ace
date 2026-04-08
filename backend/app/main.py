@@ -12,6 +12,7 @@ from app.api.users import router as users_router
 from app.api.documents import router as documents_router
 from app.api.questions import router as questions_router
 from app.api.escalations import router as escalations_router
+from app.api.feedback import router as feedback_router
 
 
 @asynccontextmanager
@@ -43,6 +44,7 @@ app.include_router(users_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(questions_router, prefix="/api")
 app.include_router(escalations_router, prefix="/api")
+app.include_router(feedback_router, prefix="/api")
 
 
 @app.get("/health")
