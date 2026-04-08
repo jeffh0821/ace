@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Data
+chroma_data/
+*.db
+uploads/
+
+# Secrets
+.env
+*.pem
+
+# IDE
+.vscode/
+.idea/
