@@ -1,16 +1,41 @@
-# React + Vite
+# ACE Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React SPA for the ACE (Assistant for Connector Engineering) application.
 
-Currently, two official plugins are available:
+## Stack
+- React 18, Vite, TailwindCSS
+- Axios (API client with cookie auth)
+- React Router (client-side routing with role-based guards)
+- Lucide React (icons)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Development
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Dev server runs at http://localhost:5173 and proxies `/api/*` to `http://localhost:8000`.
 
-## Expanding the ESLint configuration
+## Build
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run build
+```
+
+Output goes to `dist/` — served by nginx in production (see Dockerfile).
+
+## Pages
+
+| Page | Route | Role | Description |
+|------|-------|------|-------------|
+| Login | `/login` | Public | Username/password auth |
+| Ask | `/` | Any | Chat-style Q&A interface |
+| History | `/history` | Any | Question history with expandable details |
+| Escalations | `/escalations` | Engineer, Admin | View/respond to escalated questions |
+| Documents | `/documents` | Engineer, Admin | Upload PDFs, view processing status |
+| Users | `/users` | Admin | Create/manage user accounts |
+| Analytics | `/analytics` | Admin | Metrics dashboard |
+| Settings | `/settings` | Admin | Runtime config (model, threshold, top-K) |
+
+See the main [README](../README.md) for full documentation.
