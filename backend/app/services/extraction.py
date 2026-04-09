@@ -48,31 +48,42 @@ class ExtractionResult:
 def _build_header_footer_lines(pages: List[ExtractedPage]) -> set:
     """Build a set of lines confirmed as per-page headers or footers.
 
-    Uses hf_candidates collected during extraction. A line is confirmed as
-    a header/footer if it appears in the top or bottom page region AND
-    appears at a consistent y-position across at least 80% of sample pages.
+    Uses two complementary signals:
+    1. hf_candidates: lines collected from blocks in the top/bottom 6% of the page
+    2. Text frequency: lines extracted directly from page text if they appear as
+       complete lines across 80%+ of sample pages (catches phone/URL footers that
+       span multiple lines in a single block).
     Page numbers (pure digits) are excluded.
     """
     if len(pages) < 3:
         return set()
 
-    # Count appearances of each candidate line across the first 20 pages
     sample = pages[: min(20, len(pages))]
     total_sample = len(sample)
     line_counts: dict = defaultdict(int)
 
     for epage in sample:
         seen_in_page: set = set()
+
+        # Signal 1: block-position candidates
         for line_text, y_pos in epage.hf_candidates:
-            # Normalize: deduplicate per page (count once per page)
             if line_text not in seen_in_page:
                 line_counts[line_text] += 1
                 seen_in_page.add(line_text)
 
+        # Signal 2: any complete line (after stripping) that appears in 80%+ of pages
+        # This catches footer patterns that span multiple lines within a single block
+        # (e.g., phone number on one line, URL on next)
+        for line in epage.text.split("\n"):
+            stripped = line.strip()
+            # Only consider short to medium lines that could be footer boilerplate
+            if 3 < len(stripped) <= 200 and stripped not in seen_in_page:
+                line_counts[stripped] += 1
+                seen_in_page.add(stripped)
+
     # Confirm if appears in 80%+ of sample pages AND is not a page number
     confirmed = set()
     for line_text, count in line_counts.items():
-        # Exclude pure digit page numbers and very short strings
         if count >= total_sample * 0.8 and not line_text.isdigit() and len(line_text) > 2:
             confirmed.add(line_text)
 
@@ -117,9 +128,7 @@ def extract_pdf(file_path: str) -> ExtractionResult:
                     x0, y0, x1, y1, block_text, _bno, btype = block
                     if btype != 0:
                         continue
-                    # Only consider top/bottom 6% of page, and short lines
-                    if len(block_text.strip()) > 120:
-                        continue
+                    # Only consider top/bottom 6% of page
                     y_frac = y0 / page_height
                     if y_frac < HEADER_FOOTER_EXCLUDE_FRACTION or y_frac > (1 - HEADER_FOOTER_EXCLUDE_FRACTION):
                         for line in block_text.split("\n"):

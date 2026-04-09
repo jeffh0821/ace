@@ -5,12 +5,12 @@ llm:
   api_key: ${OPENROUTER_API_KEY}
 
 confidence:
-  threshold: 0.80
+  threshold: 0.65
   retrieval_weight: 0.5
   llm_weight: 0.5
 
 retrieval:
-  top_k: 5
+  top_k: 10
 
 database:
   chroma_persist_dir: ./chroma_data
