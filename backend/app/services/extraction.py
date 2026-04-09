@@ -91,15 +91,26 @@ def _build_header_footer_lines(pages: List[ExtractedPage]) -> set:
 
 
 def _strip_header_footer(raw_text: str, confirmed_lines: set) -> str:
-    """Remove confirmed header/footer lines from raw page text."""
-    if not confirmed_lines:
-        return raw_text
+    """Remove confirmed header/footer lines AND pattern-matched boilerplate."""
+    import re
+
+    # Phone number + URL patterns that always indicate footer boilerplate
+    FOOTER_PATTERNS = re.compile(
+        r"800-642-8750|800-523-0727|www\.peigenesis|techsupport@peigenesis|"
+        r"in\s+north\s+america.*pricing|in\s+uk.*pricing|in\s+europe.*pricing|"
+        r"specifications\s+subject\s+to\s+change",
+        re.IGNORECASE,
+    )
 
     result_lines = []
     for line in raw_text.split("\n"):
         stripped = line.strip()
+        # Skip confirmed frequency-based headers/footers
         if stripped in confirmed_lines:
-            continue  # skip confirmed header/footer line
+            continue
+        # Skip lines matching footer patterns (phone numbers, URLs, repeated boilerplate)
+        if FOOTER_PATTERNS.search(stripped):
+            continue
         result_lines.append(line)
 
     return "\n".join(result_lines)
