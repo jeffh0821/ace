@@ -15,7 +15,7 @@ def compute_confidence(
     Returns: (combined_score, retrieval_score, llm_score)
     """
     if retrieval_chunks:
-        retrieval_score = sum(c.similarity_score for c in retrieval_chunks) / len(retrieval_chunks)
+        retrieval_score = sum(c.vector_similarity for c in retrieval_chunks) / len(retrieval_chunks)
     else:
         retrieval_score = 0.0
 

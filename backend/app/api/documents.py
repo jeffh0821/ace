@@ -16,6 +16,7 @@ from app.db.chroma_client import get_collection
 from app.models.document import Document, ProcessingStatus
 from app.models.user import User, UserRole
 from app.services.ingestion import ingest_document
+from app.services.bm25 import build_bm25_from_chroma
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -156,6 +157,8 @@ async def delete_document(
     try:
         collection = get_collection()
         collection.delete(where={"document_id": doc.id})
+        # Rebuild BM25 index so deleted chunks are no longer indexed
+        build_bm25_from_chroma(collection)
     except Exception:
         pass
 

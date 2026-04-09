@@ -12,6 +12,7 @@ from app.models.document import Document, ProcessingStatus
 from app.services.extraction import extract_pdf
 from app.services.chunking import chunk_document
 from app.services.embedding import embed_texts
+from app.services.bm25 import build_bm25_from_chroma
 
 
 async def ingest_document(document_id: int):
@@ -78,7 +79,10 @@ async def ingest_document(document_id: int):
                     metadatas=metadatas[i:batch_end],
                 )
 
-            # Step 5: Update document record
+            # Step 5: Build BM25 index over all chunks in Chroma
+            build_bm25_from_chroma(collection)
+
+            # Step 6: Update document record
             doc.chunk_count = len(chunks)
             doc.status = ProcessingStatus.completed
             doc.processed_at = datetime.utcnow()

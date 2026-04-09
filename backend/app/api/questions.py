@@ -94,7 +94,7 @@ async def ask_question(
                 "text": c.text,
                 "document_title": c.document_title,
                 "page_number": c.page_number,
-                "similarity": c.similarity_score,
+                "similarity": c.vector_similarity,
             }
             for c in chunks
         ]
