@@ -94,12 +94,17 @@ def _strip_header_footer(raw_text: str, confirmed_lines: set) -> str:
     """Remove confirmed header/footer lines AND pattern-matched boilerplate."""
     import re
 
-    # Phone number + URL patterns that always indicate footer boilerplate
+    # Phone number + URL patterns that always indicate footer boilerplate.
+    # Conservative: only match lines that ARE primarily phone/URL content,
+    # not paragraphs that happen to contain CEO-related keywords.
     FOOTER_PATTERNS = re.compile(
-        r"800-642-8750|800-523-0727|www\.peigenesis|techsupport@peigenesis|"
-        r"in\s+north\s+america.*pricing|in\s+uk.*pricing|in\s+europe.*pricing|"
-        r"specifications\s+subject\s+to\s+change",
-        re.IGNORECASE,
+        r"^.*800-642-8750.*$|"
+        r"^.*800-523-0727.*$|"
+        r"^.*www\.peigenesis\.com?.*$|"
+        r"^.*techsupport@peigenesis.*$|"
+        r"^.*Specifications subject to change.*$|"
+        r"^For Assistance in Europe.*back cover.*$",
+        re.IGNORECASE | re.MULTILINE,
     )
 
     result_lines = []
