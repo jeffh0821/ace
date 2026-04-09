@@ -40,9 +40,9 @@ class ExtractedPage:
 @dataclass
 class ExtractionResult:
     filename: str
-    pdf_title: Optional[str] = None  # Extracted from PDF metadata, may be empty
     page_count: int
     pages: List[ExtractedPage]
+    pdf_title: Optional[str] = None  # Extracted from PDF metadata, may be empty
     errors: List[str] = field(default_factory=list)
 
 
