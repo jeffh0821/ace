@@ -294,6 +294,10 @@ Open http://localhost:5173
 
 See **[docs/API.md](docs/API.md)** for the complete REST API reference with all 19 endpoints, request/response schemas, and examples.
 
+Additional documentation:
+- **[docs/ace-design-document.md](docs/ace-design-document.md)** — Full system requirements, architecture, and acceptance criteria (v1.2)
+- **[docs/ace-implementation-plan.md](docs/ace-implementation-plan.md)** — Phase-by-phase build guide with all deviations documented
+
 ### Endpoint Summary
 
 | Method | Path | Auth | Role | Description |
@@ -386,7 +390,9 @@ ace/
 ├── .env.example                    # Environment variable template
 ├── README.md                       # This file
 ├── docs/
-│   └── API.md                      # Complete REST API reference
+│   ├── API.md                      # Complete REST API reference
+│   ├── ace-design-document.md      # System requirements & design (v1.2)
+│   └── ace-implementation-plan.md  # Phase-by-phase build guide
 ├── backend/
 │   ├── Dockerfile                  # Python 3.11 + Tesseract + pre-downloaded model
 │   ├── requirements.txt            # Python dependencies (pinned versions)
