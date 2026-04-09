@@ -27,7 +27,7 @@ except LookupError:
     nltk.download("punkt", quiet=True)
     nltk.download("punkt_tab", quiet=True)
     from nltk.corpus import stopwords
-    from nltk.stem import Porterstemmer
+    from nltk.stem import PorterStemmer
     from nltk.tokenize import word_tokenize
 
     ENGLISH_STOPWORDS = set(stopwords.words("english"))
