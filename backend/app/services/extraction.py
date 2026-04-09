@@ -195,11 +195,11 @@ def extract_pdf(file_path: str) -> ExtractionResult:
     doc.close()
 
     # Post-process: strip repeated per-page headers/footers (no re-opening needed)
+    confirmed_hf: set = set()
     if len(pages) >= 3:
         confirmed_hf = _build_header_footer_lines(pages)
-        if confirmed_hf:
-            for epage in pages:
-                epage.text = _strip_header_footer(epage.text, confirmed_hf)
+    for epage in pages:
+        epage.text = _strip_header_footer(epage.text, confirmed_hf)
 
     return ExtractionResult(
         filename=path.name,
