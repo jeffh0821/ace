@@ -31,7 +31,7 @@ pyyaml==6.0.2
 pydantic-settings==2.7.1
 
 # BM25 / hybrid search
-rank-bm25==3.0.2
+rank-bm25==0.2.2
 nltk==3.9.1
 
 # Testing
