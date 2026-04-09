@@ -35,15 +35,19 @@ A RAG-powered Q&A web application for PEI-Genesis. Sales teams ask natural-langu
                     │  ┌──────────────────┐  ┌──────────────────────┐  │
                     │  │ sentence-        │  │ OpenRouter API       │  │
                     │  │ transformers     │  │ (LLM inference)      │  │
-                    │  │ (embeddings)     │  │                      │  │
+                    │  │ (embeddings)    │  │                      │  │
                     │  └──────────────────┘  └──────────────────────┘  │
+                    │  ┌─────────────────────────────────────────┐  │
+                    │  │ Hybrid Retrieval: ChromaDB (vector) +     │  │
+                    │  │ BM25 (keyword) + Reciprocal Rank Fusion   │  │
+                    │  └─────────────────────────────────────────┘  │
                     └───────┬──────────────────────┬───────────────────┘
                             │                      │
                     ┌───────▼──────┐       ┌───────▼──────┐
                     │   SQLite     │       │   ChromaDB   │
                     │  (users,     │       │  (vectors,   │
                     │   questions, │       │   document   │
-                    │   etc.)      │       │   chunks)    │
+                    │   etc.)     │       │   chunks)    │
                     └──────────────┘       └──────────────┘
 ```
 
@@ -53,7 +57,7 @@ A RAG-powered Q&A web application for PEI-Genesis. Sales teams ask natural-langu
 Upload PDF → Extract text (PyMuPDF + Tesseract OCR fallback) → Hybrid chunking (structure-aware + token-size) → Embed via sentence-transformers (all-MiniLM-L6-v2) → Store in ChromaDB
 
 **Question Answering:**
-User question → Embed query → Retrieve top-K chunks from Chroma → Send context + question to LLM via OpenRouter → LLM returns structured JSON (answer + confidence + citations) → Compute combined score (retrieval × LLM weighted) → If ≥ threshold: show answer with citations; if < threshold: escalate to engineer
+User question → Embed query → Simultaneously retrieve top-K chunks from ChromaDB (vector) and BM25 (keyword) → Fuse results with Reciprocal Rank Fusion → Send top chunks to LLM via OpenRouter → LLM returns structured JSON (answer + confidence + citations) → Compute combined score (retrieval_weight × retrieval + llm_weight × LLM) → If ≥ threshold: show answer; if < threshold but top chunk has strong BM25 match (rank=1, score ≥ 2.0): show answer (bypass escalation); else: escalate to engineer
 
 **Escalation Resolution:**
 Engineer views escalated question + retrieved context → Writes response → Response shown to sales user on next visit → Q&A pair embedded and stored in Chroma (improving future answers)
@@ -137,7 +141,7 @@ llm:
   api_key: ${OPENROUTER_API_KEY}     # Resolved from env var
 
 confidence:
-  threshold: 0.80                # Below this → escalate (0.0–1.0, changeable at runtime)
+  threshold: 0.60                # Below this → escalate (0.0–1.0, changeable at runtime). BM25 keyword match bypasses escalation regardless of this threshold.
   retrieval_weight: 0.5          # Weight for retrieval similarity in combined score
   llm_weight: 0.5                # Weight for LLM self-reported confidence
 
@@ -241,7 +245,7 @@ Open http://localhost:5173
 
 ### First-Time Setup
 
-1. **Login** as `admin` / `changeme`
+1. **Login** as `admin` / `P3iG3n3s1s!` (change this immediately after first login)
 2. **Create users** — Go to Users → Add User for each sales rep and engineer
 3. **Upload documents** — Go to Documents → Upload PDF. Wait for status to show "completed"
 4. **Configure** — Go to Settings to adjust the LLM model, confidence threshold, or retrieval depth
@@ -365,7 +369,7 @@ Tests use an in-memory SQLite database and mock all external services (sentence-
 |---------|----------|
 | "No text could be extracted from document" | PDF may be image-only. Ensure Tesseract is installed and working: `tesseract --version` |
 | First question is very slow | The sentence-transformers model downloads on first use (~90MB). Subsequent queries are fast. In Docker, the model is pre-downloaded at build time. |
-| All questions are escalated | Check that documents were ingested successfully (Documents page shows status=completed and chunk_count > 0). Also check if the confidence threshold is too high (Settings page). |
+| All questions are escalated | Check that documents were ingested successfully (Documents page shows status=completed and chunk_count > 0). Also check if the confidence threshold is too high (Settings page — default is 60%). Note: BM25 keyword matches (e.g., queries containing "CEO", part numbers, phone numbers) bypass escalation even with low vector similarity. |
 | Login works but cookie not sent | Ensure frontend and backend are on the same origin, or that CORS `allow_credentials=True` and `withCredentials=true` are set (they are by default). |
 | Docker build fails on sentence-transformers | The model download during build needs ~2GB of memory. Ensure Docker has sufficient resources. |
 | "OCR failed on page X" | Tesseract may not be installed in the container. The Dockerfile installs it, but custom builds may miss it. Check: `tesseract --version` inside the container. |
@@ -412,9 +416,10 @@ ace/
 │   │   │   ├── extraction.py       # PyMuPDF + Tesseract OCR
 │   │   │   ├── chunking.py         # Hybrid chunking strategy
 │   │   │   ├── ingestion.py        # Full pipeline orchestrator
-│   │   │   ├── retrieval.py        # Chroma vector search
+│   │   │   ├── bm25.py             # BM25 keyword index (Okapi BM25 with NLTK stemming/stopwords)
+│   │   │   ├── retrieval.py        # Hybrid retrieval: Chroma vector + BM25, fused via RRF
 │   │   │   ├── llm.py              # OpenRouter LLM service
-│   │   │   └── confidence.py       # Combined confidence scoring
+│   │   │   └── confidence.py       # Combined confidence scoring + BM25-aware escalation bypass
 │   │   └── db/
 │   │       ├── database.py         # Async SQLAlchemy + seed admin
 │   │       └── chroma_client.py    # ChromaDB client singleton

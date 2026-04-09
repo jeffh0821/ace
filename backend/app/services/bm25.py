@@ -131,10 +131,14 @@ def get_bm25_index() -> Bm25Index:
 
 def build_bm25_from_chroma(collection) -> None:
     """Fetch all chunks from a Chroma collection and build/replace the BM25 index."""
-    all_chunks = collection.get(include=["documents", "metadatas", "ids"])
+    # ChromaDB versions vary on whether 'ids' is allowed in include= for get().
+    # Fetch IDs separately to be safe.
+    all_ids = collection.get(include=[])["ids"]
+    all_docs = collection.get(include=["documents"])["documents"]
+    all_metas = collection.get(include=["metadatas"])["metadatas"]
     chunks = [
-        {"id": all_chunks["ids"][i], "text": all_chunks["documents"][i]}
-        for i in range(len(all_chunks["ids"]))
+        {"id": all_ids[i], "text": all_docs[i]}
+        for i in range(len(all_ids))
     ]
     idx = Bm25Index()
     idx.build(chunks)

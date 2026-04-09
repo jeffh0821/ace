@@ -15,7 +15,7 @@ from app.models.escalation import Escalation, EscalationStatus
 from app.models.user import User, UserRole
 from app.services.retrieval import retrieve_chunks
 from app.services.llm import generate_answer
-from app.services.confidence import compute_confidence, is_above_threshold
+from app.services.confidence import compute_confidence, should_escalate
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -62,15 +62,15 @@ async def ask_question(
         chunks, llm_response.confidence
     )
 
-    # Step 4: Determine status
-    if is_above_threshold(combined_score):
-        q_status = QuestionStatus.answered
-        answer_text = llm_response.answer
-        citations_json = json.dumps(llm_response.citations)
-    else:
+    # Step 4: Determine status (BM25-aware escalation)
+    if should_escalate(chunks, combined_score):
         q_status = QuestionStatus.escalated
         answer_text = None
         citations_json = None
+    else:
+        q_status = QuestionStatus.answered
+        answer_text = llm_response.answer
+        citations_json = json.dumps(llm_response.citations)
 
     # Step 5: Save question
     question = Question(

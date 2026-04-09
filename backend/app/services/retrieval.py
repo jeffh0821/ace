@@ -27,6 +27,7 @@ class RetrievedChunk:
     similarity_score: float  # RRF fusion score — used for ranking only
     vector_rank: int
     bm25_rank: int
+    bm25_score: float = 0.0  # Raw BM25 score — used for BM25-aware confidence boost
     vector_similarity: float = 0.0  # Raw vector similarity [0-1] — used for confidence scoring
 
 
@@ -112,6 +113,7 @@ def retrieve_chunks(query: str, top_k: Optional[int] = None) -> List[RetrievedCh
                 similarity_score=rrf_score,
                 vector_rank=v_rank,
                 bm25_rank=b_rank,
+                bm25_score=b_score,
                 vector_similarity=v_sim,
             )
 
