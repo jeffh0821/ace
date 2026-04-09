@@ -458,6 +458,58 @@ Returns a single `DocumentResponse` object.
 
 ---
 
+#### `PATCH /api/documents/{document_id}`
+
+Update a document's title. This also updates the title in all Chroma chunk metadata, so citations reflect the new name.
+
+**Auth required:** `admin`
+
+**Path Parameters:**
+
+| Parameter     | Type | Description       |
+|---------------|------|-------------------|
+| `document_id` | int  | ID of the document |
+
+**Request Body:**
+
+| Field   | Type   | Required | Description                      |
+|---------|--------|----------|----------------------------------|
+| `title` | string | Yes      | New document title (must be non-empty) |
+
+```json
+{
+  "title": "Updated Document Title"
+}
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "id": 1,
+  "title": "Updated Document Title",
+  "filename": "connector_spec.pdf",
+  "file_size_bytes": 245760,
+  "page_count": 42,
+  "chunk_count": 128,
+  "status": "completed",
+  "error_message": null,
+  "uploaded_at": "2025-01-15T10:30:00",
+  "processed_at": "2025-01-15T10:30:45"
+}
+```
+
+**Error Responses:**
+
+| Status | Detail             | Condition                    |
+|--------|--------------------|------------------------------|
+| `400`  | Title cannot be empty | Empty title string         |
+| `401`  | Not authenticated  | Missing or invalid cookie    |
+| `403`  | Forbidden          | Non-admin user               |
+| `404`  | Document not found | No document with that ID     |
+
+---
+
 #### `DELETE /api/documents/{document_id}`
 
 Delete a document, removing it from the database, ChromaDB vector store, and disk.
@@ -648,6 +700,32 @@ Returns a JSON array of `QuestionResponse` objects, ordered by ask date (newest 
 
 ---
 
+#### `DELETE /api/questions/{question_id}`
+
+Delete a question and its associated escalation (if any). The escalation record and any associated Chroma entry for resolved escalation Q&A (`qa_escalation_*`) are also removed.
+
+**Auth required:** `admin`
+
+**Path Parameters:**
+
+| Parameter     | Type | Description      |
+|---------------|------|------------------|
+| `question_id` | int  | ID of the question |
+
+**Response** `204 No Content`
+
+No response body.
+
+**Error Responses:**
+
+| Status | Detail            | Condition                    |
+|--------|-------------------|------------------------------|
+| `401`  | Not authenticated | Missing or invalid cookie    |
+| `403`  | Forbidden         | Non-admin user               |
+| `404`  | Question not found | No question with that ID    |
+
+---
+
 ### Escalations
 
 All escalation endpoints are prefixed with `/api/escalations`. **Engineer or admin only.**
@@ -778,6 +856,36 @@ Submit an engineer response to an escalated question. This action:
 - An escalation can only be responded to once. Subsequent attempts return a `400` error.
 
 ---
+
+
+
+#### `DELETE /api/escalations/{escalation_id}`
+
+Delete an escalation and its associated question. The Chroma entry for the escalation Q&A (`qa_escalation_*`) is also removed.
+ 
+**Auth required:** `admin`
+ 
+**Path Parameters:**
+ 
+| Parameter       | Type | Description        |
+|-----------------|------|--------------------|
+| `escalation_id` | int  | ID of the escalation |
+ 
+**Response** `204 No Content`
+ 
+No response body.
+ 
+**Error Responses:**
+ 
+| Status | Detail               | Condition                       |
+|--------|----------------------|---------------------------------|
+| `401`  | Not authenticated    | Missing or invalid cookie       |
+| `403`  | Forbidden            | Non-admin user                  |
+| `404`  | Escalation not found | No escalation with that ID      |
+ 
+---
+
+
 
 ### Feedback
 
