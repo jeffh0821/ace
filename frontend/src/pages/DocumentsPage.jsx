@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Trash2, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Trash2, CheckCircle, Clock, AlertCircle, Loader2, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
@@ -8,6 +8,8 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
   const fileRef = useRef(null);
 
   const fetchDocs = () => {
@@ -50,6 +52,30 @@ export default function DocumentsPage() {
     } catch (err) {
       alert(err.response?.data?.detail || 'Delete failed');
     }
+  };
+
+  const startEdit = (doc) => {
+    setEditingId(doc.id);
+    setEditTitle(doc.title);
+  };
+
+  const saveEdit = async (id) => {
+    if (!editTitle.trim()) {
+      alert('Title cannot be empty');
+      return;
+    }
+    try {
+      await api.patch(`/documents/${id}`, { title: editTitle.trim() });
+      setEditingId(null);
+      fetchDocs();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Update failed');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle('');
   };
 
   const statusIcon = (status) => {
@@ -98,8 +124,25 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-2">
                       <FileText size={16} className="text-gray-400" />
                       <div>
-                        <p className="font-medium text-sm">{doc.title}</p>
-                        <p className="text-xs text-gray-400">{doc.filename}</p>
+                        {editingId === doc.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && saveEdit(doc.id)}
+                              className="border rounded px-2 py-1 text-sm w-48"
+                              autoFocus
+                            />
+                            <button onClick={() => saveEdit(doc.id)} className="text-green-600 hover:text-green-800 text-xs">Save</button>
+                            <button onClick={cancelEdit} className="text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-medium text-sm">{doc.title}</p>
+                            <p className="text-xs text-gray-400">{doc.filename}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -116,9 +159,16 @@ export default function DocumentsPage() {
                   <td className="px-4 py-3 text-sm text-gray-600">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
                   {user?.role === 'admin' && (
                     <td className="px-4 py-3">
-                      <button onClick={() => handleDelete(doc.id, doc.title)} className="text-red-500 hover:text-red-700">
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {editingId !== doc.id && (
+                          <button onClick={() => startEdit(doc)} className="text-gray-500 hover:text-blue-600" title="Edit title">
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(doc.id, doc.title)} className="text-red-500 hover:text-red-700" title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
