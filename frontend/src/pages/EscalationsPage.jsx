@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Send, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 export default function EscalationsPage() {
+  const { user } = useAuth();
   const [escalations, setEscalations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
@@ -17,6 +19,16 @@ export default function EscalationsPage() {
   };
 
   useEffect(() => { fetchEscalations(); }, [filter]);
+
+  const handleDelete = async (id, questionText) => {
+    if (!confirm(`Delete this escalation?\n\n"${questionText.substring(0, 80)}..."\n\nThis will also delete the associated question.`)) return;
+    try {
+      await api.delete(`/escalations/${id}`);
+      setEscalations(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Delete failed');
+    }
+  };
 
   const handleRespond = async (id) => {
     const text = responseText[id];
@@ -57,14 +69,21 @@ export default function EscalationsPage() {
           {escalations.map(esc => (
             <div key={esc.id} className="bg-white rounded-lg shadow-sm border p-5">
               <div className="flex justify-between items-start mb-3">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-gray-800">{esc.question_text}</p>
                   <p className="text-xs text-gray-400 mt-1">From: {esc.asked_by_name} • {new Date(esc.created_at).toLocaleString()}</p>
                 </div>
-                {esc.status === 'pending' ?
-                  <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full"><AlertTriangle size={12} />Pending</span> :
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full"><CheckCircle size={12} />Resolved</span>
-                }
+                <div className="flex items-center gap-2">
+                  {user?.role === 'admin' && (
+                    <button onClick={() => handleDelete(esc.id, esc.question_text)} className="text-red-400 hover:text-red-600" title="Delete escalation">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  {esc.status === 'pending' ?
+                    <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full"><AlertTriangle size={12} />Pending</span> :
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full"><CheckCircle size={12} />Resolved</span>
+                  }
+                </div>
               </div>
 
               {esc.retrieved_context && esc.retrieved_context.length > 0 && (

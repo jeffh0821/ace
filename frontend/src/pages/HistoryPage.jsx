@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ThumbsUp, ThumbsDown, AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, AlertTriangle, CheckCircle, Clock, MessageSquare, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 export default function HistoryPage() {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
@@ -10,6 +12,16 @@ export default function HistoryPage() {
   useEffect(() => {
     api.get('/questions/').then(res => setQuestions(res.data)).finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = async (id, questionText) => {
+    if (!confirm(`Delete this question?\n\n"${questionText.substring(0, 80)}..."\n\nThis will also delete any associated escalation.`)) return;
+    try {
+      await api.delete(`/questions/${id}`);
+      setQuestions(prev => prev.filter(q => q.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Delete failed');
+    }
+  };
 
   const statusBadge = (status) => {
     const styles = {
@@ -78,6 +90,17 @@ export default function HistoryPage() {
                   )}
                   {q.confidence_score !== null && (
                     <p className="text-xs text-gray-400 mt-2">Confidence: {(q.confidence_score * 100).toFixed(1)}%</p>
+                  )}
+                  {user?.role === 'admin' && (
+                    <div className="mt-3 pt-3 border-t flex justify-end">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(q.id, q.question_text); }}
+                        className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
+                      >
+                        <Trash2 size={14} />
+                        Delete Question
+                      </button>
+                    </div>
                   )}
                   {q.status === 'escalated' && (
                     <p className="text-sm text-amber-600 mt-2">Waiting for engineer response...</p>
