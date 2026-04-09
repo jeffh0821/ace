@@ -40,6 +40,7 @@ class ExtractedPage:
 @dataclass
 class ExtractionResult:
     filename: str
+    pdf_title: Optional[str] = None  # Extracted from PDF metadata, may be empty
     page_count: int
     pages: List[ExtractedPage]
     errors: List[str] = field(default_factory=list)
@@ -199,6 +200,20 @@ def extract_pdf(file_path: str) -> ExtractionResult:
 
     doc.close()
 
+    # Extract PDF metadata title (may be empty or useless — ingestion layer decides)
+    pdf_title = None
+    try:
+        pdf_doc = fitz.open(str(path))
+        metadata = pdf_doc.metadata
+        raw_title = metadata.get("title", "").strip()
+        # Only use it if it's non-empty and looks like a real title
+        # (not the filename, not a single generic word)
+        if raw_title and len(raw_title) > 3 and raw_title.lower() != path.stem.lower():
+            pdf_title = raw_title
+        pdf_doc.close()
+    except Exception:
+        pass
+
     # Post-process: strip repeated per-page headers/footers (no re-opening needed)
     confirmed_hf: set = set()
     if len(pages) >= 3:
@@ -208,6 +223,7 @@ def extract_pdf(file_path: str) -> ExtractionResult:
 
     return ExtractionResult(
         filename=path.name,
+        pdf_title=pdf_title,
         page_count=total_pages,
         pages=pages,
         errors=errors,

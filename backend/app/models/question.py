@@ -4,6 +4,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy.schema import ForeignKeyConstraint
 from app.db.database import Base
 
 
@@ -24,7 +25,7 @@ class Question(Base):
     retrieval_score = Column(Float, nullable=True)
     llm_confidence = Column(Float, nullable=True)
     status = Column(Enum(QuestionStatus), nullable=False)
-    asked_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    asked_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     asked_at = Column(DateTime, default=datetime.utcnow)
     feedback_positive = Column(Boolean, nullable=True)
     feedback_at = Column(DateTime, nullable=True)

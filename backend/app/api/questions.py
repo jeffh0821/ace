@@ -8,8 +8,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_roles
 from app.db.database import get_db
+from app.db.chroma_client import get_collection
 from app.models.question import Question, QuestionStatus
 from app.models.escalation import Escalation, EscalationStatus
 from app.models.user import User, UserRole
@@ -168,3 +169,37 @@ async def list_questions(
         ))
 
     return responses
+
+
+@router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_question(
+    question_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_roles([UserRole.admin])),
+):
+    """Delete a question and its associated escalation (admin only).
+
+    Cascade: the escalation row is deleted via FK CASCADE.
+    Chroma entry for resolved escalation Q&A (qa_escalation_*) is also removed.
+    """
+    result = await db.execute(select(Question).where(Question.id == question_id))
+    question = result.scalar_one_or_none()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    # Find and clean up any associated escalation
+    esc_result = await db.execute(
+        select(Escalation).where(Escalation.question_id == question_id)
+    )
+    escalation = esc_result.scalar_one_or_none()
+    if escalation:
+        # Remove Chroma entry for resolved escalation Q&A
+        try:
+            collection = get_collection()
+            collection.delete(where={"source": "escalation_response", "escalation_id": escalation.id})
+        except Exception:
+            pass
+        await db.delete(escalation)
+
+    await db.delete(question)
+    return None

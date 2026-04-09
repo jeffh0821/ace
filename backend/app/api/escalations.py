@@ -131,3 +131,35 @@ async def respond_to_escalation(
     await db.commit()
 
     return {"message": "Response submitted and added to knowledgebase", "escalation_id": esc.id}
+
+
+@router.delete("/{escalation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_escalation(
+    escalation_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_roles([UserRole.admin])),
+):
+    """Delete an escalation and its associated question (admin only).
+
+    Chroma entry for the escalation Q&A (qa_escalation_*) is also removed.
+    The question row is deleted first, which cascades to the escalation row via FK.
+    """
+    result = await db.execute(select(Escalation).where(Escalation.id == escalation_id))
+    escalation = result.scalar_one_or_none()
+    if not escalation:
+        raise HTTPException(status_code=404, detail="Escalation not found")
+
+    # Remove Chroma entry for resolved escalation Q&A
+    try:
+        collection = get_collection()
+        collection.delete(where={"source": "escalation_response", "escalation_id": escalation.id})
+    except Exception:
+        pass
+
+    # Delete the question first — FK cascade removes the escalation row
+    q_result = await db.execute(select(Question).where(Question.id == escalation.question_id))
+    question = q_result.scalar_one_or_none()
+    if question:
+        await db.delete(question)
+
+    return None

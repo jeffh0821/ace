@@ -1,6 +1,7 @@
 """Document ingestion pipeline: extract -> chunk -> embed -> store."""
 
 import asyncio
+import os
 from datetime import datetime
 
 from sqlalchemy import select
@@ -40,6 +41,12 @@ async def ingest_document(document_id: int):
             # Step 1: Extract text
             extraction = await asyncio.to_thread(extract_pdf, doc.file_path)
             doc.page_count = extraction.page_count
+
+            # Auto-populate title from PDF metadata if document title
+            # still matches the filename-derived default (i.e., not yet manually set)
+            filename_default = os.path.splitext(doc.filename)[0]
+            if extraction.pdf_title and doc.title == filename_default:
+                doc.title = extraction.pdf_title
 
             # Step 2: Chunk
             chunks = chunk_document(extraction.pages, document_id=doc.id)

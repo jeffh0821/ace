@@ -12,6 +12,7 @@ dist/
 build/
 
 # Data
+data/
 chroma_data/
 *.db
 uploads/

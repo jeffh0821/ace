@@ -37,6 +37,10 @@ class DocumentResponse(BaseModel):
         from_attributes = True
 
 
+class DocumentUpdateRequest(BaseModel):
+    title: str
+
+
 @router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     background_tasks: BackgroundTasks,
@@ -127,6 +131,64 @@ async def get_document(
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    return DocumentResponse(
+        id=doc.id,
+        title=doc.title,
+        filename=doc.filename,
+        file_size_bytes=doc.file_size_bytes,
+        page_count=doc.page_count,
+        chunk_count=doc.chunk_count,
+        status=doc.status.value,
+        error_message=doc.error_message,
+        uploaded_at=doc.uploaded_at.isoformat(),
+        processed_at=doc.processed_at.isoformat() if doc.processed_at else None,
+    )
+
+
+@router.patch("/{document_id}", response_model=DocumentResponse)
+async def update_document(
+    document_id: int,
+    body: DocumentUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles([UserRole.admin])),
+):
+    """Update a document's title (admin only).
+
+    If the title changes, all Chroma chunks for this document are updated
+    so that citations reflect the new title.
+    """
+    result = await db.execute(select(Document).where(Document.id == document_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if not body.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+
+    old_title = doc.title
+    doc.title = body.title.strip()
+    await db.commit()
+    await db.refresh(doc)
+
+    # If title changed, update Chroma metadata for all chunks of this document
+    if old_title != doc.title:
+        try:
+            collection = get_collection()
+            chunks = collection.get(where={"document_id": doc.id})
+            if chunks and chunks.get("ids"):
+                # Update metadata for each chunk
+                updated_metadatas = []
+                for meta in chunks.get("metadatas", []):
+                    updated = dict(meta)
+                    updated["document_title"] = doc.title
+                    updated_metadatas.append(updated)
+                collection.update(
+                    ids=chunks["ids"],
+                    metadatas=updated_metadatas,
+                )
+        except Exception:
+            pass  # Non-fatal — document record is updated
+
     return DocumentResponse(
         id=doc.id,
         title=doc.title,
